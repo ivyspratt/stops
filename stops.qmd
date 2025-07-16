@@ -1,0 +1,60 @@
+---
+title: "Stops"
+format: html
+author: "Ivy Spratt"
+execute: 
+  echo: false
+---
+
+```{r}
+#| message: false
+
+library(tidyverse)
+library(primer.data)
+library(tidymodels)
+library(broom)
+library(gt)
+library(marginaleffects)
+library(ggplot2)
+```
+
+```{r}
+#| cache: true
+
+x <- stops |>
+   filter(race %in% c("black", "white")) |>
+   mutate(race = str_to_title(race), 
+          sex = str_to_title(sex))
+ 
+fit_stops <- linear_reg() |>
+     set_engine("lm") |>
+     fit(arrested ~ sex + race*zone, data = x)
+```
+
+```{r}
+preds <- plot_predictions(fit_stops, condition = c("sex", "race"), draw = FALSE)
+
+ggplot(preds, aes(x = sex, y = estimate, fill = race)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
+                position = position_dodge(width = 0.7),
+                width = 0.2) +
+  labs(
+    title = "Arrest Rates by Driver Sex and Race",
+    subtitle = "Black drivers are estimated to have higher arrest probabilities than White drivers, especially among men.",
+    x = "Driver Sex",
+    y = "Estimated Probability of Arrest",
+    fill = "Driver Race",
+    caption = "Source: stops dataset from primer.data"
+  ) +
+  theme_minimal(base_size = 14) +
+  scale_fill_manual(values = c("Black" = "#333333", "White" = "#cccccc")) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = margin(b = 10)),
+    plot.caption = element_text(size = 10),
+    legend.position = "top"
+  )
+```
+
+Using data from a study of New Orleans drivers, we seek to understand the relationship between driver race and the probabilty of getting arrested during a traffic stop. However, our data from both our Preceptor Table and our dataset may not fully represent the population as both may not be from the same time frame and some of our data may come from biased officers, who may target certain groups of individuals. However, these concerns don't appear to be valid in a substantial manner in either dataset, allowing us to continue in our process. We modeled `arrested` as a linear function of both `sex` and the product of `race` and `zone`. From this, we examined that Males are less likely of getting arrested than Females. Focusing on our question, there is no uncertainty associated with our estimate because it, itself, is an expression of uncertainty. We estimate that the probaibility of a Black driver in New Orleans getting arrested during a traffic stop is roughly 25%, compared to roughly 20% for White drivers.
